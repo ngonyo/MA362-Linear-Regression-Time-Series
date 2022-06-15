@@ -1,0 +1,64 @@
+---
+title: "Untitled"
+author: "NGonyo"
+date: "11/12/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Variable Transformation of Y Variable:
+
+```{r}
+
+setwd("~/Documents/MA362/datasets")
+dir()
+DT=read.table("DataTransform.txt", sep="\t",header=T)
+head(DT)
+
+#Lets check how each predictor variable is related to the response variable
+plot(DT$x1, DT$y, pch=16)
+plot(DT$x2, DT$y, pch=16)
+
+#Looks like x2 and y have an exponential relationship. So to address this let's apply log to response variable
+plot(DT$x2, log(DT$y), pch=16)
+
+#the scatterplot now looks linear, so we will use log y as response variable in our model
+
+logymodel = lm(log(y)~x1+x2, data=DT)
+MLRmodel = lm(y~x1+x2, data=DT)
+AIC(MLRmodel)
+AIC(logymodel)
+summary(MLRmodel)
+summary(logymodel)
+
+#We can see the log model is favorable over the standard linear model as the AIC drops significantly
+
+
+```
+
+Variable Transformation of Y Variable:
+
+```{r}
+setwd("~/Documents/MA362/datasets")
+dir()
+IM=read.table("Immunity.txt", sep="\t",header=T)
+head(IM)
+
+#With this dataset, we want to predict IGGy (immunity) based on MaxO2 (maximum oxygen intake)
+plot(IM$MaxO2, log(IM$IgGy), pch=16)
+#looks like y is related to squre root of x as opposed to x. lets see how this transformation changes x
+
+#So we are going to introduce square of MaxO2; lets call the model Max02
+IM$MaxO22 = (IM$MaxO2)^2 #adds new variable to dataset
+Maxo22model=lm(IM$IgGy~IM$MaxO2+IM$MaxO22)
+attach(IM)
+SLR=lm(IgGy ~ MaxO2, data=IM)
+
+AIC(Maxo22model)
+AIC(SLR)
+
+#Note the AIC values are very close so the variable transformation did not make as much of an impact
+```

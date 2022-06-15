@@ -1,0 +1,177 @@
+---
+title: "Untitled"
+author: "NGonyo"
+date: "11/17/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+TIME SERIES DECOMPOSITION
+
+```{r}
+
+#We are going to learn to identify and analyze the components in a time series dataset
+
+#We will start with the powerload dataset, which has quarterly data, meaning the frequency is 4. Note that data coll
+
+setwd("~/Documents/MA362/datasets")
+dir()
+PL = read.table("PowerLoad2.txt", sep="\t",header=T)
+head(PL)
+
+#we are using the powerload variable in the dataset, which is our response variable of the time series
+
+#Let's first decompose the powerload time series and check the components. To begin, we must specify aspects of the time series to R, and create a timeseries variable using the TTR package's ts() function
+require(TTR)
+TSPL = ts(PL$PowerLoad, frequency = 4, start=c(2006, 1))
+plot(TSPL, ylab = "PowerLoad", col = "purple")
+
+#Observations: we see an increasing trend and peaks every 1st and 3rd quarter, as well as valleys in the 2nd and 4th quarters. We can also see the 3rd quarter is the maximum and 2nd is the minimum every year.
+#Decomposing the time series
+DecomTSPL = decompose(TSPL)
+DecomTSPL
+plot(DecomTSPL)
+
+#In the above plot we can see the original time series (top / 1), extracted trend (2), extracted seasonal variation (3), and random residuals (bottom / 4)
+#we can now see the increasing trend clearly. we can also clearly see the quarterly changes that we noted previously in detail
+
+```
+
+
+```{r}
+#Now working with births per month dataset
+setwd("~/Documents/MA362/datasets")
+dir()
+BM = read.table("BirthsPerMonth.txt", sep="\t",header=T)
+BM(PL)
+
+TSBM = ts(BM$BirthsPerMonth, frequency = 12, start=c(2006, 1))
+plot(TSPL, ylab = "PowerLoad", col = "purple")
+
+#decompose TS
+DecomTSBM = decompose(TSBM)
+plot(DecomTSBM)
+
+```
+
+MOVING AVERAGES
+
+```{r}
+#following is code from last session
+setwd("~/Documents/MA362/datasets")
+dir()
+PL = read.table("PowerLoad2.txt", sep="\t",header=T)
+head(PL)
+require(TTR)
+TSPL = ts(PL$PowerLoad, frequency = 4, start=c(2006, 1))
+
+#new code: we will be applying a moving average to the code
+MAPL = SMA(TSPL, n=4)
+MAPL
+
+#Let's convert the moving average for powerload into a time series object
+TMAPL = ts(MAPL, frequency = 4, start=2006)
+plot(TSPL);lines(TMAPL, col="purple")
+
+#step 1: lets create the regression line from MAPL and t=1:16
+t=1:16
+MAmodel = lm(TMAPL~t)
+summary(MAmodel)
+
+#step 2: bow predict for Mt-hat for t:17:20
+MAhat = predict(MAmodel, newdata=data.frame(t=17:20))
+MAhat
+
+#step 3: Let's adjust for the corresponding seasonal index / 100
+#F17=M17-hat * (S.I. of Q1)/100
+F17 = MAhat[1]*109.8036/100
+F17
+
+
+#F18=M18-hat * (S.I. of Q2)/100
+F18 = MAhat[2]*98.3048/100
+F18
+
+#F19=M19-hat * (S.I. of Q3)/100
+F19 = MAhat[3]*122.032033/100
+F19
+
+```
+
+EXPONENTIAL SMOOTHING
+
+```{r}
+#following is code from last session
+setwd("~/Documents/MA362/datasets")
+dir()
+PL = read.table("PowerLoad2.txt", sep="\t",header=T)
+head(PL)
+
+require(TTR)
+TSPL = ts(PL$PowerLoad, frequency = 4, start=c(2006, 1))
+plot(TSPL)
+
+?HoltWinters
+?SMA()
+#we are going to use "Exponential smoothing" into the PowerLoad dataset. We will be using an exponential smoothing constant of 0.7. We will use the function HoltWinters() for exponential smoothing, with only alpha = exponential smoothing constant, so we need to set beta=FALSE, gamma=FALSE
+
+EXPL = HoltWinters(TSPL, alpha = 0.7, beta = FALSE, gamma = FALSE)
+plot(EXPL)
+
+#How about we reduce the weight on the actual time series, Yt, by reducing the smoothing constant -- use alpha .2
+EXPL2 = HoltWinters(TSPL, alpha = 0.2, beta = FALSE, gamma = FALSE)
+
+EXPL$fitted[,3]
+EXPL$fitted
+plot(EXPL$fitted)
+plot(EXPL)
+
+
+```
+
+TIME SERIES REGRESSION
+
+```{r}
+#recall that for the powerload time series, we have significant seasonal variation and also a trend. lets use both time trend and seasonality terms in the regression model
+
+plot(DecomTSPL, col = "purple1")
+RegPL = lm(PowerLoad~t+as.factor(Quarter), data=PL)
+summary(RegPL)
+
+#Next we will predict/forecast Powerload for 2010's 4 quarters. t will go from 17 to 20 for quarter 1-4
+t=17:20
+t
+head(PL)
+Quarter=1:4
+RegFt=predict(RegPL, newdata=data.frame(t, as.factor(Quarter))) #use test dataset here
+RegFt #these are the forecasted values for the 4 quarters of 2010
+
+#as this is a  MLRM we cannot plot a line but we can plot the fitted values of the MLRM
+
+#we are going to plot the fitted.values of the model on the original time series data
+RegPL$fitted.values #note, these are fitted values, not forecasts
+TSReg=ts(RegPL$fitted.values, frequency = 4, start=c(2006,1))
+plot(TSPL)
+plot(TSPL);lines(TSReg, col="green");legend("bottomright", legend=c("PowerLoad", "RegressionFittedVals"), col=c("black", "green"), pch=c(15,16))
+
+
+
+```
+
+```{r}
+
+#Let's redo exponential smoothing, with alpha = .7
+EXPL = HoltWinters(TSPL, alpha = 0.7, beta = FALSE, gamma = FALSE)
+plot(EXPL)
+
+
+
+
+```
+
+
+
+

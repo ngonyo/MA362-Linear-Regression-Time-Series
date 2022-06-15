@@ -1,0 +1,211 @@
+---
+title: "Project 2 - U.S. CPI"
+author: "NGonyo"
+date: "12/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+TS Creation, Train / Test
+
+```{r}
+setwd("~/Documents/MA362/Datasets")
+dir()
+CPI=read.table("U.S. cpi.csv", sep=",",header=T)
+CPI
+head(CPI)
+attach(CPI)
+CPI$CPIAUCNS
+CPI$DATE
+
+#Use all but the last full cycle as your train dataset and keep last full cycle as your test dataset
+dim(CPI)
+CPI
+TrainCPI = CPI[1:228,] #2000 to end of 2018
+TrainCPI
+TestCPI = CPI[229:240,] #2019 (last cycle)
+TestCPI
+
+```
+
+TS Decomposition
+
+```{r}
+#Let's first decompose the powerload time series and check the components. To begin, we must specify aspects of the time series to R, and create a timeseries variable using the TTR package's ts() function
+require(TTR)
+TSCPI = ts(TrainCPI$CPIAUCNS, frequency = 12, start=c(2000))
+plot(TSCPI, ylab = "CPI", col = "green", main = "U.S. CPI from 2000 to 2018")
+TSCPI
+
+#Observations: we see an increasing trend and peaks during the summer months especially  jul-,august. We can also see valleys in the winter Months, namely december and january.
+#Decomposing the time series
+DecomTSCPI = decompose(TSCPI)
+DecomTSCPI
+plot(DecomTSCPI, col = "green",)
+
+#In the above plot we can see the original time series (top / 1), extracted trend (2), extracted seasonal variation (3), and random residuals (bottom / 4)
+#we can now see the increasing trend clearly. we can also clearly see the quarterly changes that we noted previously in detail
+
+```
+
+Exponential Smoothing
+
+```{r}
+
+#Apply exponential smoothing, Holt Winters, and Time Series Regression approaches for forecasting for another year. 
+#we are going to use "Exponential smoothing" into the PowerLoad dataset. We will be using an exponential smoothing constant of 0.7. We will use the function HoltWinters() for exponential smoothing, with only alpha = exponential smoothing constant, so we need to set beta=FALSE, gamma=FALSE
+
+EXCPI = HoltWinters(TSCPI, alpha = NULL, beta = FALSE, gamma = FALSE)
+EXCPI
+plot(EXCPI)
+
+EXCPIFt=rep(251.233, 12)
+
+EXCPI$fitted[,1]
+EXCPI$fitted
+plot(EXCPI$fitted[,1],col="blue", main="Exponential Smoothing")
+plot(EXCPI) 
+
+#Let's calculate the forecast accuracy of Exponential Smoothing Model.
+#We need the actual values yt
+#Also need the forecasted(predicted) values Ft
+
+#Enter Actual future values into a column
+TestCPI
+yt=c(TestCPI$CPIAUCNS)
+yt
+
+#Enter forecasted values into a column
+Ft=c(EXCPIFt)
+Ft
+
+#Let's calculate MAD 
+
+MAD=(mean(abs(yt-Ft)))
+MAD
+
+#Let's calculate MAPE
+MAPE=(sum(abs((yt-Ft)/yt)))*100/12
+MAPE
+#Let's calculate RMSE
+RMSE=sqrt((sum((yt-Ft)^2))/12)
+RMSE
+
+```
+
+Holt Winters
+
+```{r}
+#HoltWinters Smoothing Technique
+#This is an extension of Exponential Smoothing which emphasize both trend and seasonal variation appropriately.
+# We will be using the HoltWinters() function and now with values for all alpha, beta, and gamma to denote the exponential smoothing constant, trend constant and the constant for seasonality.
+
+HWCPI=HoltWinters(TSCPI, alpha=0.7, beta=0.5, gamma=0.5)
+HWCPI
+plot(HWCPI)
+
+
+HWCPI1=HoltWinters(TSCPI, alpha=NULL, beta=NULL, gamma=NULL)
+HWCPI1
+plot(HWCPI1)
+#we can see that the optimized values for holt winters are as follows: alpha = 0.9758161, beta = 0, gamma = 1
+
+#In order to forecast time values using HoltWinters we need to install and load the forecast package.
+#Load the package
+require(forecast)
+#pass the holtwinters model and h=how many future forecasts you need
+HWFt=forecast(HWCPI1, h=12)
+HWFt
+
+
+#Let's calculate the forecast accuracy of HoltWinters Forecating Model.
+#We need the actual values yt
+#Also need the forecasted(predicted) values Ft
+
+#Enter Actual future values into a column
+TestCPI
+yt=c(TestCPI$CPIAUCNS)
+yt
+
+#Enter forecasted values into a column
+Ft=c(HWFt$mean)
+Ft
+
+#Let's calculate MAD 
+MAD=(sum(abs(yt-Ft)))/12
+MAD
+#Let's calculate MAPE
+MAPE=(sum(abs((yt-Ft)/yt)))*100/12
+MAPE
+#Let's calculate RMSE
+RMSE=sqrt((sum((yt-Ft)^2))/12)
+RMSE
+
+
+```
+
+Time Series Regression
+
+```{r}
+
+CPI
+TSCPI
+Month=rep(1:12) #need to make a new variable with months going 1-12 for regression factor variable
+Month
+Time1=(1:12) #need to make time variable which is easy to read for regression approach
+Time1
+
+CPI19=CPI[229:240,]
+CPI19
+CPI19$Month=Month
+CPI19$Time=Time1
+CPI19
+
+
+RegCPI = lm(CPI19$CPIAUCNS~CPI19$DATE+as.factor(CPI19$Month), data=CPI19)
+summary(RegPL)
+
+#Next we will predict/forecast CPI for 2019's 12 months t will go from 229 to 240 for 2019 month 1-12
+
+
+RegFt=predict(RegCPI, newdata=data.frame(t, as.factor(Month1))) #use test dataset here
+RegFt #these are the forecasted values for the 4 quarters of 2010
+#the actual future power load values are given in the example #1 in the last handout
+yt=c(TestCPI$CPIAUCNS)
+yt
+
+
+RegMAD = mean(abs(yt-RegFt))
+RegMAD
+
+RegMAPE=mean(abs((yt-RegFt)/yt))*100
+RegMAPE
+
+RegRMSE = sqrt(mean((yt-RegFt)^2))
+RegRMSE
+
+plot(EXCPI)
+plot(HWCPI)
+plot((RegCPI$fitted.values), pch="16")
+
+
+TSReg=ts(RegCPI$fitted.values, frequency = 12, start=c(2000))
+EXTS=ts(EXCPI$fitted[,1], frequency = 12, start=c(2000))
+plot(EXTS,col="blue")
+plot(TSReg, col="green", main="Time Series Regression Plot");lines(CPI$CPIAUCNS)
+
+plot(EXCPI$fitted[,1],col="blue")
+plot(HWCPI, col="red")
+plot(TSReg)
+
+
+EXCPI$fitted
+plot(HWCPI1, main="All 3 Forecasts");lines(EXCPI$fitted[, 1],col="blue");lines(TSReg, col="green");legend("bottomright", legend =c("HoltWinters", "Exponential Smoothing", "TSRegression"),col=c("red", "blue", "green"), pch=c(16,16,16))
+
+
+```
+
+

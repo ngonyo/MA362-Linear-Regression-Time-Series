@@ -1,0 +1,159 @@
+---
+title: "Untitled"
+author: "NGonyo"
+date: "10/4/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+PREDICTING RESPONSE VARIABLE EXAMPLE
+
+```{r}
+
+
+#We are going to work on predicting the response variable values based on given predictor variable value.
+SalRev = c(1,1,2,2,4)
+AdvExp = c(1,2,3,4,5)
+SalesRevModel=lm(SalRev~AdvExp)
+summary(SalesRevModel)
+
+#Now we are going to predict SalRev for a given AdvExp value.
+#If AdvExp = 3.75, we need to predictSalRev value
+#For prediction we use predict() function: predict(model, newdata=data.frame(xvalues))
+predict(SalesRevModel, newdata = data.frame(AdvExp=3.75))
+
+#Predicting two values:
+predict(SalesRevModel, newdata = data.frame(AdvExp=c(3.75, 4.1)))
+
+#Next we can generate confidence intervals and prediction intervals for the average response and predicted response, respectively.
+#all we need to do is define interval="confidence" or "prediction" in predict function
+
+#First, Confidence Interval:
+predict(SalesRevModel, newdata = data.frame(Adv.Exp=3.75), interval = "confidence")
+#to change confidence level / alpha
+predict(SalesRevModel, newdata = data.frame(Adv.Exp=3.75), interval = "confidence", level=0.9)
+#in general: learn more about function: here, predict:
+?predict()
+
+#Second, Prediction Interval
+predict(SalesRevModel, newdata = data.frame(Adv.Exp=3.75), interval = "prediction")
+predict(SalesRevModel, newdata = data.frame(Adv.Exp=3.75), interval = "prediction", level=0.9)
+#note high alpha level means wider interval
+```
+
+OUTLIER REMOVAL
+
+```{r}
+##Now, working with collegeGPA dataset:
+setwd("~/Documents/MA362/Datasets")
+dir()
+CGPA = read.table("CollegeGPA.txt", sep="\t",header=T)
+head(CGPA)
+dim(CGPA)
+str(CGPA)
+
+#Lets check and display outliers:
+boxplot(CGPA)
+boxplot(CGPA, pch=16, col="green")
+boxplot(CGPA, pch=16, col="green")$out
+#now that we know hsGPA and ACT have outlier, lets investigate them closely one variable at a time
+#First hsGPA because it has most outliers and removing them might remove the outliers in ACT
+attach(CGPA) #allows us to go variable by variable
+boxplot(hsGPA, horizontal = T, pch=16)
+
+#step 1: what are the outlier values
+boxplot(hsGPA, horizontal = T, pch=16)$out
+hsGPAoutliers=boxplot(hsGPA, horizontal = T)$out
+hsGPAoutliers
+which(hsGPA %in% hsGPAoutliers)
+#these are the rows with outliers
+
+#step 2: identify the row numbers that contain those values for hsGPA
+CGPA[ c(41,50) , ]
+
+#step 3: remove rows with outliers from dataset
+hsGPAoutlierRows=which(hsGPA %in% hsGPAoutliers)
+hsGPAoutlierRows
+#lets take tgse rows out of the CGPA dataset and call it CGPA2
+CGPA2=CGPA[-hsGPAoutlierRows , ]
+dim(CGPA)
+dim(CGPA2)
+
+
+#Now that we removed the rows that habe outliers, ;ets check the new dataset to see whether there are more outliers
+boxplot(CGPA2)
+
+#Lets remove the one outlier in ACT, following the same steps
+ACTOutliers=boxplot(ACT, horizontal = T)$out
+ACTOutliers
+ACTOutlierRows=which(ACT %in% ACTOutliers)
+ACTOutlierRows
+CGPA3=CGPA2[-ACTOutlierRows , ]
+boxplot(CGPA3, horizontal = T)
+
+
+#Once we remove all the outliers, let's save the dataset
+write.table(CGPA3, "collegeGPAwithoutOutliers.txt", sep="\t", row.names = F)
+
+#let's call the dataset with outliers removed by the name "CG". We will use CG for the rest of this file.
+CG = CGPA3
+#Next task is to check whether each x variable has a linear relationship with the y variable
+#we are going to predict colGPA based on hsGPA, ACT, and skipped
+#Let's create all the scatter plots
+attach(CG)
+plot(hsGPA, colGPA, pch=16)
+plot(ACT, colGPA, pch=16)
+plot(skipped, colGPA, pch=16)
+
+#correlation coefficients:
+cor(hsGPA, colGPA)
+cor(ACT, colGPA)
+cor(skipped, colGPA)
+
+#As we can see from the correlation coefficients,
+#hsGPA and colGPA have a weak positive linear relationship
+#ACT and colGPA have a weak positive linear relationship
+#number of classes skipped and colGPA have a weak negative linear relationship
+
+```
+
+CREATION OF TRAIN AND TEST DATASETS AFTER OUTLIER REMOVAL
+
+```{r}
+#Before we create a model, we will divide the dataset into training (80%) and testing (20%)
+#80% of Rows will be randomly selected to create the train dataset and moved into new dataset. Remaining 20% will be testing dataset.
+#first, find dimensions of dataset
+dim(CG)
+#.8 * 138 is 110 so 110 records will go into train dataset. We will randomly generate 110 row numbers and extract those rows from CG
+randomrows=sample(1:138, 110, replace = F)
+randomrows
+Train = CG[randomrows, ]
+dim(Train)
+#Now remove those rows from the CG dataset to get the remaining rows into the Test dataset
+Test = CG[-randomrows, ]
+dim(Test)
+
+#Now let's save the train and test datasets. Remember to start with reading these two datasets when modeling.
+write.table(Train, "TrainCGPA.txt", sep="\t", row.names = F)
+write.table(Test, "TestCGPA.txt", sep = "\t", row.names = F)
+
+
+
+```
+
+CREATION OF MLRM FROM TRAIN DATASET
+
+```{r}
+#Now we will create a multiple linear regression model from the training dataset.
+model1 = lm(colGPA~hsGPA+ACT+skipped, data=Train)
+summary(model1)
+
+#We can start checking assumptions, of which there are 5 for the MLRM
+#LETS DO THIS IN ANOTHER FILE, RESIDUAL ANALYSIS OF MLRM
+
+
+
+```

@@ -1,0 +1,109 @@
+---
+title: "Untitled"
+author: "NGonyo"
+date: "10/4/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+CHECKING ASSUMPTIONS OF MULTIPLE LINEAR REGRESSION MODEL
+
+```{r}
+setwd("~/Documents/MA362/R files")
+dir()
+Train = read.table("TrainCGPA.txt", sep="\t",header=T)
+
+#Now we will create a multiple linear regression model from the training dataset.
+model1 = lm(colGPA~hsGPA+ACT+skipped, data=Train)
+summary(model1)
+
+#We can start checking assumptions, of which there are 5 for the MLRM. 
+
+#Assumption 1: check the normality of the errors
+qqnorm(model1$residuals)
+#The above normal probability / qq plot of residuals looks approx. linear. Thereforem we can say the residyals (errors) are normally distributed
+
+#Assumption 2,3: check the E(errors)=0 "mean of error term is 0" and the error term has constant variance (heteroskedastisity) for all combinations of y and predictor variables hsGPA, ACT, skipped
+plot(model1$fitted.values, model1$residuals, pch=16);abline(0,0)
+
+plot(Train$hsGPA, model1$residuals, pch=16);abline(0,0)
+plot(Train$ACT, model1$residuals, pch=16);abline(0,0)
+plot(Train$skipped, model1$residuals, pch=16);abline(0,0)
+
+#assumption 2, E(error)=0 assumption:
+#All of the above residual plots are approx. symmetric around x-axis. The points look random without presence of a pattern. Therefore we say assumption 2 is satisfied. 
+
+#Assumption 3: variance of error term constant:
+#All of the above residual plots have approx. horizontal band around x-axis. Therefore, we can say assumption 3 is satisfied. The third plot is the only one which is questionable as it seems like it may have decreasing variance.
+
+#Assumption 4: independence of error term / errors not correlated
+#The fourth assumption is checked using the Durbin Watson test, which we need a package for
+require(lmtest)
+dwtest(model1, alternative = "two.sided")
+#The DW test statistic returned a value closer to 2 than 1 or 3 so we fail to reject Ho. We can also look at p value which is .09, > .05. Since we failed to reject Ho, conclude errors are not correlated, satisfying assumption 4. 
+
+#Note that we still don't know how to evaluate the new assumption we learned for multiple linear regression model. Once we complete chapter 7 we will get back to evaluate new assumption.
+
+```
+
+CREATION OF NEW MLRM MODEL WITHOUT "ACT"
+
+```{r}
+
+#Assuming all the  MLR assumptions are satisfied, we can perform the indivdual t-tests of each beta value
+
+#in the above output, we can see hsGPA (p-value = 0.00288 <. 05) and skipped (p-value = 0.00411 <. 05) are useful predictor variables to predict the colGPA
+#ACT (p-value = 0.98182 > .05) is not a useful predtor variable to preict colGPA in the model
+
+#Let's create a new model without ACT to compare if this new model is better than our previous model
+model2=lm(colGPA~hsGPA+skipped, data=Train)
+summary(model1)
+summary(model2)
+
+#We can see that the s (residual standard error) has gone down slightly from .338 to .3365
+#We can see that the r^2 (coefficient of determination) has stayed the same, .1654 to .1654
+#Since the s and r^2 values barely changed in our two models, lets use a more commonly used measure to compare the models, called AIC and BIC
+#AIC = Akike Information Critereon
+#BIC = Bayesian Information Criteron
+#BIC is used more commonly for more complex models
+
+#smaller AIC/BIC is preferred. 
+AIC(model1)
+AIC(model2)
+#the second model has a smaller AIC value, which suggests we should use model2
+
+```
+
+CHECKING PREDICTION ACCURACY
+
+```{R}
+#Let's use model 2 for prediction
+#We are going to check the prediction accuracy for the model
+#To check the accuracy, we will predict the response variable using the test dataset
+Test = read.table("TestCGPA.txt", sep="\t",header=T)
+dim(Test)
+head(Test)
+
+#When we prdict we pass only the predictor variable in the test dataset as a data.frame(). 
+#Then the model will predict the response variable value
+
+PredictedcolGPA=predict(model2, newdata=data.frame(Test[, c(2,4)]))
+#Note that we only use columns 2-4 as act was determined to not be a statistically significant predictor variable previously.
+PredictedcolGPA
+
+#we can compare the PredictedcolGPA with actual colGPA in the dataset. column binding is done with cbind()
+cbind(Predicted=PredictedcolGPA, Actual=Test$colGPA)
+
+#Let's compute the mean absolute percentage error (MAPE)
+nrow(Test)
+ncol(Test)
+dim(Test)
+MAPE = (sum(abs(Test$colGPA-PredictedcolGPA)/Test$colGPA)/nrow(Test))*100
+MAPE
+
+
+
+```

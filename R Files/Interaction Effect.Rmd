@@ -1,0 +1,66 @@
+---
+title: "Bidder's Data set"
+author: "Aaron Neiger"
+date: "11/8/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+setwd("C:/Users/aneiger/MA 362")
+#2. Read the bidders dataset 
+data=read.table("Bidders.txt", sep = "\t", header=T)
+head(data)
+
+#Supoose we are suspiciuos or want to know whether an interation term can be used in the regression model to predict the price on the age and the number of bidders of grandfather clocks
+
+#First step is plotting one x variable with y based on each different set of values of the other x variable.
+
+summary(data)
+
+#The following is the frequency table for NUMBIDS
+table(data$NUMBIDS)
+
+# Let's pick NUMBIDS=6,7,8,9 and plot price vs age for each value of NUMBIDS among those values
+#For that we need to subset the dataset for each of those values 
+
+#NB=6
+NB6=subset(data, NUMBIDS==6)
+NB6
+
+#NB7
+NB7=subset(data, NUMBIDS==7)
+NB7
+
+#NB8
+NB8=subset(data, NUMBIDS==8)
+NB8
+
+#NB9
+NB9=subset(data, NUMBIDS==9)
+NB9
+
+#WE are going to make multiple lines on the same plot
+#Note that plot is used once and the rest of the plots are made by 'points' command 
+
+plot(NB6$AGE, NB6$PRICE);abline(lm(PRICE~AGE, data = NB6))
+
+plot(NB6$AGE, NB6$PRICE, pch=16);abline(lm(PRICE~AGE, data = NB6)); points(NB7$AGE, NB7$PRICE); abline(lm(PRICE~AGE, data=NB7))
+
+plot(NB6$AGE, NB6$PRICE, pch=16, xlab = "Bidder Age", ylab = "Grandfather Clock Price");abline(lm(PRICE~AGE, data = NB6), col="red"); points(NB7$AGE, NB7$PRICE); abline(lm(PRICE~AGE, data=NB7), col="blue"); abline(lm(PRICE~AGE, data=NB8), col="green"); abline(lm(PRICE~AGE, data = NB9), col="orange")
+
+#We see that some lines in the above plot are not parallel. That indicates possible interaction between Age and NUMBIDS
+
+#Let's create the MLR model with interaction term
+model=lm(PRICE~AGE+NUMBIDS+AGE*NUMBIDS, data=data)
+summary(model)
+
+
+
+
+```

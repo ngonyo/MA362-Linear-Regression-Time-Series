@@ -1,0 +1,229 @@
+---
+title: "362 project 1"
+author: "NGonyo"
+date: "10/5/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+INTRO
+
+```{r}
+#To start, lets import the dataset, get a basic idea of the dimensions, and separate each variable included.
+#set the working directory
+setwd("~/Documents/MA362/Datasets")
+dir()
+Indiana2016=read.table("indiana2016.txt", sep="\t",header=T)
+Indiana2016
+educ=Indiana2016$educ
+
+#Display top 6 records in dataset
+head(Indiana2016)
+#Display bottom 6 records in the dataset
+tail(Indiana2016)
+#Display how many rows and columns are in the dataset, ie the "dimensions"
+dim(Indiana2016)
+#Lets see how R read the data in the dataset, ie we need to check the "structure" of the dataset
+str(Indiana2016)
+#summary of dataset
+summary(Indiana2016)
+#Attach the dataset so we can reference each variable individually
+attach(Indiana2016)
+
+cor(Indiana2016$age, Indiana2016$inctotal)
+cor(Indiana2016$educ, Indiana2016$inctotal)
+cor(Indiana2016$hrswork, Indiana2016$inctotal)
+cor(Indiana2$age, Indiana2$inctotal)
+cor(Indiana2$educ, Indiana2$inctotal)
+cor(Indiana2$hrswork, Indiana2$inctotal)
+
+#Let's get a summary of each variable individually. We only care about the variables to be used in our model, which are INCTOTAL (predicted variable), AGE, EDUC, HRSWORK, SEX, MARST (predictor variables).
+
+summary(inctotal)
+summary(age)
+summary(educ)
+summary(hrswork)
+summary(sex)
+summary(marst)
+
+
+```
+
+OUTLIER REMOVAL
+
+```{r}
+#let's generate boxplots for each variable to check for the presence of outliers.
+boxplot(inctotal, horizontal = T, col="red", main="Total income boxplot")
+boxplot(age, horizontal = T, col="orange", main="Age boxplot")
+boxplot(educ, horizontal = T, col="yellow", main="Education boxplot")
+boxplot(hrswork, horizontal = T, col="green", main="Hours Worked boxplot")
+boxplot(sex, horizontal = T, col="blue", main="Sex boxplot")
+boxplot(marst, horizontal = T, col="purple", main="Marriage Status boxplot")
+
+#We can see that there are outliers present in the inctotal and hrswork variables. Let's see how many outliers are present and which rows contain these outliers for both variables with outliers present.
+
+IncomeOutliers=boxplot(inctotal, horizontal = T)$out
+IncomeOutliers
+IncomeOutlierRows=which(inctotal %in% IncomeOutliers)
+IncomeOutlierRows
+Indiana1=Indiana2016[-IncomeOutlierRows , ]
+boxplot(Indiana1, horizontal = T)
+dim(Indiana2016)
+dim(Indiana1)
+
+HoursWorkedOutliers=boxplot(hrswork, horizontal = T)$out
+HoursWorkedOutliers
+HoursWorkedOutlierRows=which(hrswork %in% HoursWorkedOutliers)
+HoursWorkedOutlierRows
+Indiana2=Indiana1[-HoursWorkedOutlierRows , ]
+boxplot(Indiana2, horizontal = T)
+dim(Indiana2016)
+dim(Indiana2)
+
+#Now we removed all the outliers, let's save the dataset
+write.table(Indiana2, "Indiana2016_no_Outliers.txt", sep="\t", row.names = F)
+
+#Let's create boxplots of each variable after outliers have been removed
+boxplot(Indiana2$inctotal, horizontal = T, col="red", main="Total income boxplot w/o outliers")
+boxplot(Indiana2$hrswork, horizontal = T, col="green", main="Hours Worked boxplot w/o outliers")
+
+```
+
+SCATTERPLOTS & CORRELATION COEFFICIENTS
+
+```{R}
+#We will be working with the dataset with outliers removed from now on
+attach(Indiana2)
+summary(Indiana2)
+
+#Note the only variables that we will create scatterplots for and check correlation coefficients are Age, Educ, Hourswrked as these are non binary / quantitative variables
+
+#now we will make scatterplots of each x variable against inctotal (y variable)
+plot(age, inctotal, pch=1, col="red", xlab="Age in years", ylab="Total Income in Dollars", main="Age vs Income")
+plot(Indiana2$educ, inctotal, pch=1, col="blue", xlab="Number of years of education", ylab="Total Income in Dollars", main="Education vs Income")
+plot(hrswork, inctotal, pch=1, col="green", xlab="number of years of education", ylab="Total Income in Dollars", main="Hours Worked vs Income")
+
+#Now let's find the linear correlation coefficient between each variable
+cor(age, inctotal)
+cor(Indiana2$educ, inctotal)
+cor(hrswork, inctotal)
+
+```
+
+CREATION OF TESTING AND TRAINING DATASETS
+
+```{r}
+attach(Indiana2)
+dim(Indiana2)
+0.8*(dim(Indiana2))
+#since there are 22805 rows in our dataset, we need to take out (.8*22805= approx 18240) rows
+#We will randomly generate 18240 row numbers and extract those rows from Indiana2016 
+randomrowsIND=sample(1:22805, 18240, replace = F)
+randomrowsIND
+TrainIndiana = Indiana2[randomrowsIND, ]
+dim(TrainIndiana)
+#Now remove those rows from the dataset to get the remaining rows into the Test dataset
+TestIndiana = Indiana2[-randomrowsIND, ]
+dim(TestIndiana)
+write.table(TrainIndiana, "TrainIndiana.txt", sep="\t", row.names = F)
+write.table(TestIndiana, "TestIndiana.txt", sep = "\t", row.names = F)
+
+
+```
+
+
+```{r}
+
+#Now we can create our model. We need to set the qualitative variables SEX & MARST as factor variables first.
+as.factor(TrainIndiana$sex)
+as.factor(TrainIndiana$marst)
+
+attach(TrainIndiana)
+IndianaModel1 = lm(TrainIndiana$inctotal ~ TrainIndiana$educ + TrainIndiana$age + TrainIndiana$hrswork + TrainIndiana$sex + TrainIndiana$marst, data=TrainIndiana)
+summary(IndianaModel1)
+
+```
+
+CHECKING MLRM ASSUMPTIONS 1-4
+
+```{r}
+
+summary(IndianaModel1)
+attach(TrainIndiana)
+summary(TrainIndiana)
+
+#plot(IndianaModel1$fitted.values, IndianaModel1$residuals, pch=16);abline(0,0)
+
+plot(TrainIndiana$age, IndianaModel1$residuals, pch=16, col = "red", main = "Residual Plot for Age");abline(0,0)
+plot(TrainIndiana$educ, IndianaModel1$residuals, pch=16, col = "blue", main = "Residual Plot for Educ");abline(0,0)
+plot(TrainIndiana$hrswork, IndianaModel1$residuals, pch=16, col = "green", main = "Residual Plot for HrsWorked");abline(0,0)
+
+
+#assumption 1: E(error)=0 assumption:
+#All of the above residual plots are approx. symmetric around x-axis. The points look random without presence of a pattern. Therefore we say assumption 2 is satisfied. 
+
+#Assumption 2: variance of error term constant:
+#All of the above residual plots have approx. horizontal band around x-axis. Therefore, we can say assumption 3 is satisfied. The third plot is the only one which is questionable as it seems like it may have decreasing variance.
+
+#Assumption 3: errors approx normally distributed:
+
+qqnorm(IndianaModel1$residuals, pch = 16, col = "deeppink", main = "Residuals / Error Term Q-Q Norm Plot")
+
+#Assumption 4: independence of error term / errors not correlated
+#The fourth assumption is checked using the Durbin Watson test, which we need a package for
+require(lmtest)
+dwtest(IndianaModel1, alternative = "two.sided")
+#The DW test statistic returned a value closer to 2 than 1 or 3 so we fail to reject Ho. We can also look at p value which is .09, > .05. Since we failed to reject Ho, conclude errors are not correlated, satisfying assumption 4. 
+
+
+```
+
+MLRM ASSUMPTION 5: CHECKING FOR MULTICOLINEARITY
+
+```{r}
+cor(TrainIndiana$age,TrainIndiana$educ)
+cor(TrainIndiana$age, TrainIndiana$hrswork)
+cor(TrainIndiana$age, TrainIndiana$sex)
+cor(TrainIndiana$age, TrainIndiana$marst)
+cor(TrainIndiana$educ, TrainIndiana$hrswork)
+cor(TrainIndiana$educ, TrainIndiana$sex)
+cor(TrainIndiana$educ, TrainIndiana$marst)
+cor(TrainIndiana$sex, TrainIndiana$hrswork)
+cor(TrainIndiana$sex, TrainIndiana$marst)
+cor(TrainIndiana$marst, TrainIndiana$hrswork)
+
+#finding variance inflation factor of each variable
+require(car)
+vif(IndianaModel1)
+
+
+```
+
+PREDICTION AND CONFIDENCE INTERVALS, MAPE
+
+```{r}
+head(TestIndiana)
+
+PredIntIndiana = predict(IndianaModel1, newdata = data.frame(TestIndiana[,c(1, 2, 3, 4, 5)]), interval = "prediction")
+PredIntIndiana
+
+ConfIntIndiana = predict(IndianaModel1, newdata = data.frame(TestIndiana[,c(1, 2, 3, 4, 5)]), interval = "confidence")
+ConfIntIndiana
+
+
+#we can compare the PredIntIndiana with actual inctotal  in the dataset. column binding is done with cbind()
+cbind(Predicted=PredIntIndiana, Actual=TrainIndiana$inctotal)
+
+#Let's compute the mean absolute percentage error (MAPE)
+nrow(Test)
+ncol(Test)
+dim(TestIndiana)
+nrow(TestIndiana)
+
+MAPE = (sum(abs((TestIndiana$inctotal-PredIntIndiana)/TestIndiana$inctotal))/nrow(TestIndiana))*100
+MAPE
+3240.999/nrow(TestIndiana)
+```

@@ -1,0 +1,93 @@
+---
+title: "Residual Analysis of Simple Linear Regression"
+author: "NGonyo"
+date: "9/17/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+#We are going to perform residual analysis for two simple linear regression models: 1) based on the model created from wage dataset, 2) based on the model from collegeGPA dataset
+#We will do the wage dataset first. Here we want to estimate the wage based on the number of years of education. we have already done the preprocessing and creation of the linear regression model in another R file "Wage Linear Regression"
+
+
+setwd("~/Documents/MA362/Datasets")
+dir()
+WageData=read.table("Wage.txt", sep="\t",header=T)
+WageModel=lm(wage~educ, data=WageData)
+
+#Let's create a scatterplot with the estimated regression line:
+plot(WageData$educ, WageData$wage, pch=16);abline(WageModel, col="blue")
+
+#summarize the regression model:
+summary(WageModel)
+
+#the wage model coemes with some other components that we can access through WAgeModel$xxx
+#Lets display the model coefficients
+WageModel$coefficients
+
+#Model residuals:
+WageModel$residuals
+
+#Fitted values (yhat values) of the model
+WageModel$fitted.values
+
+#####CheckingAssumptions#####
+
+#Assumption #1 -- E(error)=0
+#We are going to create the residuals plot ie the scatterplot of X or yhat on x axis with error plot on y-axis
+#the following is x vs error (residuals)
+plot(WageData$educ, WageModel$residuals, pch=16);abline(0,0)
+
+#the following is yhat vs error (residuals)
+plot(WageModel$fitted.values, WageModel$residuals, pch=16);abline(0,0)
+
+#Assumption #1: the mean / expected value of the errors is 0
+
+#We can see the parts of the plot on the left side are missing and symmetry is not clearly present. We will conclude assumption 1 is not satisfied as it seems the errors get larger and x/yhat values increase.
+
+#Assumption #2: variance of error term constant accross x values
+#We will use same two plots to check 2nd assumptions. Again with the lack of constant horizontal band around x-acis, we are going to say assumption 2 is not satisfied.
+
+#Assumption #3: errors are normally distributed
+#we can use a histogram/density curve/ normal probability (qq) plot to check and verify normality
+
+hist(WageModel$residuals)
+plot(density(WageModel$residuals))
+qqnorm(WageModel$residuals, pch=16)
+
+#Histogram and boxplot and desnity plot show a little bit of rifht skewness in the reisduals. qq plot is approx. linear. since this is the most robust visual, we are going with accepting the normality of the residuals
+
+#Assumption #4: errors are not correlated
+#We need to install the package "lmtest"
+#to load the package:
+require(lmtest)
+dwtest(WageModel, alternative="two.sided")
+#As the DW test statistics is 2.2347, which is close to 2, we can conclude autocorrelation is NOT present in our model and assumption 4 is satisfied.
+
+
+```
+
+```{r}
+####Regression Inferences & Further analysis####
+
+#Recall our first model, which included the intercept
+WageModel=lm(wage~educ, data=WageData)
+summary(WageModel)
+
+#We can generate confidence intervals for the parameters in the model, using function confint
+confint(WageModel)
+
+#We have found that the intercept is not useful in the model, as 0 in not contained in the confidence interval for the intercept.
+#Let's create a model for the data without the intercept
+model2=lm(wage~0+educ, data=WageData)
+summary(model2)
+
+
+
+
+```

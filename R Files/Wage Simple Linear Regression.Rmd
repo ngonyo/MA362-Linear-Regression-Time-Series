@@ -1,0 +1,147 @@
+---
+title: "Wage Linear Regression"
+author: "NGonyo"
+date: "9/1/2021"
+output: word_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This white space is where we type things as we would in a word file.
+
+#This is a top level header with one #
+## This is a next level header with ##
+
+#"\newpage" takes you to new page
+
+Now lets create an R chunk where we will put R commands
+
+```{r}
+
+require(rmarkdown)
+#set the working directory
+setwd("~/Documents/MA362/Datasets")
+dir()
+WageData=read.table("Wage.txt", sep="\t",header=T)
+WageData
+
+#Display top 6 records in dataset
+head(WageData)
+
+#Display bottom 6 records in the dataset
+tail(WageData)
+
+#Display how many rows and columns are in the dataset, ie the "dimensions"
+dim(WageData)
+
+#Lets see how R read the data in the dataset, ie we need to check the "structure" of the dataset
+str(WageData)
+
+#Next let's learn how to access each variable. Display wage,educ variable
+WageData$wage
+WageData$educ
+  
+#Let's assign each variable to a new simplified variable to make things easier.
+educ=WageData$educ
+wage=WageData$wage
+
+#We want to vet to know more about the data in each variable. Let's find the standard deviation and wage of each variable.
+summary(WageData$wage)
+summary(WageData$educ)
+mean(wage)
+mean(educ)
+sd(wage)
+sd(educ)
+
+#lets create boxplots foe each variable and see whether there are outliers. Note a box plot with equal lines to ea. side is uniformly distributed. A boxplot with a longer line on the right signifies a right skew. Opposite is true for left skew.
+boxplot(educ)
+boxplot(wage)
+
+#to make the boxplots horizontal:
+boxplot(educ, horizontal = T, col="green", main="Education boxplot")
+boxplot(wage, horizontal = T)
+
+#Note in the wage boxplot the line (called whisker) on the right is longer, signifying a right skew. There are also no dots on the end of ea. side, meaning no outlier observations.
+#Let's generate a histogram for wage to further visualize the data.
+hist(wage)
+#The skew to the right is clearly visable here
+
+#Lets create a density curve
+plot(density(wage))
+
+#Another way to check the normality is the use a normal probability plot (aka QQplot) is great if working with a small sample size. changing pch results in different plot shapes.
+qqnorm(wage)
+qqnorm(wage, pch=16)
+qqnorm(wage, pch=10)
+
+#If the normal probability / qq plot is approximately linear we say the variable is apporx. normally distributed.
+#The NPP plot of wage is not linear, showing wage is not normally distributed.
+
+#Now let's further investigate the educ variable.
+boxplot(educ, horizontal = T)
+hist(educ)
+plot(density(educ))
+qqnorm(educ, pch=16)
+
+#The most clear evidence of skew here comes from the boxplot, which has a longer left whisker than right whisker. The other graphs show educ being approximately normal.
+
+##########################################
+
+#Now let's begin working towards making a linear regression model between our two variables.
+#First we need to know if there is a linear relationship between wage and educ. For us to use linear regression there needs to be linear relationship between wage and educ.
+#To check the relationship, we will use a scatterplot.
+plot(educ, wage)
+plot(educ, wage, pch=16, col="green", xlab="number of years of education", ylab="wage in dollars", main="Wage vs Education")
+
+#We can see a somewhat weak positive linear relationship between educ and wage.
+#We can quantify the strength of the linear relationship between wahe and educ using correlation coefficient
+cor(educ, wage)
+#The correlatlion coefficient value is positive and less than .5, so we can confirm that there is a weak positive relationship between educ and wage
+#since we can see a linear trend in the dataset we can continue with linear regression.
+```
+
+```{r}
+#In the previous part we performed some preliminary analysis of this dataset and verified that educ and wage and have a linear relationship. Therefore, we are good to start the linear regression model
+
+#lets create the simple linear regression model.
+wageModel = lm(formula = wage ~ educ, data = WageData)
+summary(wageModel)
+
+#Assume the wage is given in 1000's of dollars and education is number of years.
+
+#From this output we can gather:
+
+#a) estimated regression line: wagehat = .1582 + .5660*educ
+
+#b,c) parameter estimates: beta0hat = -.1582, beta1hat = .5660
+#beta0hat interpretatio is not meaningful, as there cannot be a negative salary given, even to someone with 0 education. 
+#beta1hat means for every additional year of education, the average wage goes up by $566
+
+#d) standard error of regression: s = 3.33
+#The average difference between observed wage and the estimated wage is $3330 (really high)
+
+#e) coefficient of variation (CV): s/mean of wages = 3.33*100/mean(WageData$Wage) =
+CV = 3.33*100/(mean(wage))
+CV
+#The estimated standard error of regression is 48.67% of the average age. As this CV is greater than 10%, this is not favorable and shows a large amount of variation in the regression model
+```
+
+```{r}
+
+#Recall the variances for each variable:
+sd(wage)^2
+sd(educ)^2
+
+#Let's calculate the variance-covariance matrix of our data, denoted Sn,
+var(WageData)
+
+#This shows the variance of each variable in entries C11,C22, and covariance of the two variables in entries C12,C21
+#Entries 
+
+#Now let's calculate the correlation matrix, denoted Rn
+cor(WageData)
+
+```
